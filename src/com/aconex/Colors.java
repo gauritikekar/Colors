@@ -1,48 +1,66 @@
+/*
+ * Class to process RGB data
+ */
 package com.aconex;
-import java.util.Map;
-import java.util.HashMap;
-import java.io.IOException;
-import java.util.ArrayList;
+
+import java.io.*;
 
 public class Colors {
 
-	private Map<String, String> mapColorHex;
-	
-	public Colors() {
-		mapColorHex = new HashMap<String, String>();
-	}
-	
-	public Boolean initialize(IColorData objTextClr) {
-		Boolean ret = true;
-		try
-		{
-			ArrayList<String> arrayData = objTextClr.getData();
-		
-			for(String it : arrayData) {
-				String[] arrTokens = it.split(",");
-				String strHexVal = "";
-				
-				if(arrTokens.length>0) {
-					for(int cnt=1; cnt < arrTokens.length; cnt++){
-					     strHexVal += String.format("%02x",Integer.parseInt(arrTokens[cnt]));
-					}
-					mapColorHex.put(arrTokens[0], strHexVal);
-				}				
-			}
-		}
-		catch(IOException ex) {
-			ret = false;
-			System.out.println(ex.toString());
-		}
+	private IColorData m_objClrData;
 
-		return ret;
+	public Colors(IColorData objTextClr) {
+		m_objClrData = objTextClr;
 	}
-	
-	public String getHexValue(String strColorName){
-		return mapColorHex.get(strColorName);
+
+	public String getHexValue(String strColorName) {
+		String strHexValue = null;
+		RGB ob = m_objClrData.getDataMap().get(strColorName);
+		if (ob != null) {
+			strHexValue = String.format("%02x%02x%02x", ob.getR(), ob.getG(), ob.getB());
+		}
+		return strHexValue;
 	}
-	
+
 	public static void main(String[] args) {
-		
+
+		if (args.length > 0) {
+
+			// Initialize the interface that reads data from a text file.
+			IColorData objColorData = new TextColorData();
+			try {
+				objColorData.initialize(args[0]);
+				System.out.println(
+						"Loaded " + Integer.toString(objColorData.getDataMap().size()) + " colors from " + args[0]);
+
+				// Create container for fetching color values.
+				Colors objClr = new Colors(objColorData);
+
+				BufferedReader bufIn = new BufferedReader(new InputStreamReader(System.in));
+
+				// Read until user inputs no data/enter key.
+				String strColor = null;
+				while (true) {
+					strColor = bufIn.readLine();
+
+					if (strColor.isEmpty()) {
+						System.out.println("Bye");
+						break;
+					}
+
+					String strColorHex = objClr.getHexValue(strColor);
+					if (strColorHex == null) {
+						System.out.println("Color " + strColor + " not known.");
+					} else {
+						System.out.println("#" + strColorHex);
+					}
+				}
+			} catch (IOException ex) {
+				System.out.println(ex.toString());
+			}
+
+		} else {
+			System.out.println("Argument missing: File Name");
+		}
 	}
 }
